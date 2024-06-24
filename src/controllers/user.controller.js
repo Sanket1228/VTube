@@ -277,7 +277,7 @@ const updateUserAvatar = asyncHandler(async (req, res) => {
 
     const avatar = await uploadOnCloudinay(avatarLocalPath);
 
-    if (!avatar.url) {
+    if (!avatar?.url) {
         throw new ApiError(500, "Error while uploading avatar on server");
     }
 
@@ -407,9 +407,7 @@ const getWatchHistory = asyncHandler(async (req, res) => {
     const user = await User.aggregate([
         {
             $match: {
-                _id: new mongoose.Types.ObjectId.createFromHexString(
-                    req.user._id
-                ),
+                _id: new mongoose.Types.ObjectId(req.user._id),
             },
         },
         {
