@@ -1,5 +1,6 @@
 import { v2 as cloudinary } from "cloudinary";
 import fs from "fs";
+import { ApiError } from "./ApiError.js";
 
 cloudinary.config({
     cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -23,4 +24,18 @@ const uploadOnCloudinay = async (localFileUrl) => {
     }
 };
 
-export { uploadOnCloudinay };
+const removeFromCloudinay = async (uploadedUrl) => {
+    try {
+        if (!uploadedUrl) return null;
+
+        const response = await cloudinary.uploader.destroy(uploadedUrl);
+        return response;
+    } catch (error) {
+        return new ApiError(
+            500,
+            "something went wrong while deleting resource from server"
+        );
+    }
+};
+
+export { removeFromCloudinay, uploadOnCloudinay };

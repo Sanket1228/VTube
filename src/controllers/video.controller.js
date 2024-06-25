@@ -2,7 +2,7 @@ import { Video } from "../models/video.model.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
-import { uploadOnCloudinay } from "../utils/cloudinary.js";
+import { removeFromCloudinay, uploadOnCloudinay } from "../utils/cloudinary.js";
 
 const publishVideo = asyncHandler(async (req, res) => {
     const { title, description } = req.body;
@@ -39,4 +39,55 @@ const publishVideo = asyncHandler(async (req, res) => {
         .json(new ApiResponse(200, video, "video uploaded successfully"));
 });
 
-export { publishVideo };
+const getVideoById = asyncHandler(async (req, res) => {
+    const { videoId } = req.params;
+
+    if (!videoId) {
+        throw new ApiError(404, "video id is required");
+    }
+
+    const video = await Video.findById(videoId);
+
+    return res
+        .status(200)
+        .json(new ApiResponse(200, video, "video fetched successfully"));
+});
+
+const updateVideo = asyncHandler(async (req, res) => {
+    const { videoId } = req.params;
+
+    if (!videoId) {
+        throw new ApiError(404, "video id is required");
+    }
+
+    const { title, description } = req.body;
+
+    const thumbnailLocalPath = req?.file?.path;
+
+    const thumbnailUrl = await uploadOnCloudinay(thumbnailLocalPath);
+
+    const uploadedThumbnailUrl =
+        await Video.findById(videoId).select("thumbnail");
+
+    await removeFromCloudinay(uploadedThumbnailUrl);
+
+    const video = await Video.findByIdAndUpdate(
+        videoId,
+        {
+            $set: {
+                title,
+                description,
+                thumbnail: thumbnailUrl?.url,
+            },
+        },
+        { new: true }
+    );
+
+    return res
+        .status(200)
+        .json(
+            new ApiResponse(200, video, "video details updated successfully")
+        );
+});
+
+export { getVideoById, publishVideo, updateVideo };
