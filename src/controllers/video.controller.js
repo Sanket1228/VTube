@@ -48,6 +48,10 @@ const getVideoById = asyncHandler(async (req, res) => {
 
     const video = await Video.findById(videoId);
 
+    if (!video) {
+        throw new ApiError(404, "video not found");
+    }
+
     return res
         .status(200)
         .json(new ApiResponse(200, video, "video fetched successfully"));
@@ -83,6 +87,10 @@ const updateVideo = asyncHandler(async (req, res) => {
         { new: true }
     );
 
+    if (!video) {
+        throw new ApiError(404, "video not found");
+    }
+
     return res
         .status(200)
         .json(
@@ -90,4 +98,105 @@ const updateVideo = asyncHandler(async (req, res) => {
         );
 });
 
-export { getVideoById, publishVideo, updateVideo };
+const deleteVideo = asyncHandler(async (req, res) => {
+    const { videoId } = req.params;
+
+    if (!videoId) {
+        throw new ApiError(404, "video id is required");
+    }
+
+    const uploadedThumbnailUrl =
+        await Video.findById(videoId).select("thumbnail");
+
+    const uploadedVideoUrl = await Video.findById(videoId).select("videoFile");
+
+    await removeFromCloudinay(uploadedThumbnailUrl);
+    await removeFromCloudinay(uploadedVideoUrl);
+
+    const video = await Video.findByIdAndDelete(videoId);
+
+    if (!video) {
+        throw new ApiError(404, "Video not found");
+    }
+
+    return res
+        .status(200)
+        .json(new ApiResponse(200, {}, "video deleted successfully"));
+});
+
+const togglePublishStatus = asyncHandler(async (req, res) => {
+    const { videoId } = req.params;
+
+    if (!videoId) {
+        throw new ApiError(404, "video id is required");
+    }
+
+    const { isPublished } = req.body;
+
+    if (!isPublished) {
+        throw new ApiError(404, "value of isPublished is required");
+    }
+
+    const video = await Video.findByIdAndUpdate(
+        videoId,
+        {
+            $set: {
+                isPublished,
+            },
+        },
+        { new: true }
+    );
+
+    if (!video) {
+        throw new ApiError(404, "Video not found");
+    }
+
+    return res
+        .status(200)
+        .json(
+            new ApiResponse(200, video, "published status updated successfully")
+        );
+});
+
+const getAllVideos = asyncHandler(async (req, res) => {
+    const { pg = 1, pgsz = 10 } = req.query;
+
+    const skip = (pg - 1) * pgsz;
+
+    const videos = await Video.aggregate([
+        {
+            $skip: skip,
+        },
+        {
+            $limit: pgsz,
+        },
+    ]);
+
+    if (!videos) {
+        throw new ApiResponse(404, "videos not found");
+    }
+
+    const count = await Video.countDocuments();
+
+    return res.status(200).json(
+        new ApiResponse(
+            200,
+            {
+                currentPage: pg,
+                pageSize: pgsz,
+                total: Math.ceil(count / pgsz),
+                videos,
+            },
+            "videos fetched successfully"
+        )
+    );
+});
+
+export {
+    deleteVideo,
+    getAllVideos,
+    getVideoById,
+    publishVideo,
+    togglePublishStatus,
+    updateVideo,
+};
