@@ -31,7 +31,7 @@ const publishVideo = asyncHandler(async (req, res) => {
         title,
         description: description,
         duration: uploadedVideo.duration,
-        user: req.user?._id,
+        owner: req.user._id,
     });
 
     return res
@@ -169,6 +169,34 @@ const getAllVideos = asyncHandler(async (req, res) => {
         },
         {
             $limit: pgsz,
+        },
+        {
+            $lookup: {
+                from: "users",
+                localField: "owner",
+                foreignField: "_id",
+                as: "ownerDetails",
+            },
+        },
+        {
+            $unwind: {
+                path: "$ownerDetails",
+                preserveNullAndEmptyArrays: true,
+            },
+        },
+        {
+            $project: {
+                videoFile: 1,
+                thumbnail: 1,
+                title: 1,
+                description: 1,
+                duration: 1,
+                views: 1,
+                isPublished: 1,
+                createdAt: 1,
+                updatedAt: 1,
+                "ownerDetails.fullName": 1,
+            },
         },
     ]);
 
