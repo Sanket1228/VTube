@@ -4,7 +4,10 @@ import express from "express";
 
 const app = express();
 
-const allowedOrigins = ["http://localhost:3000", "https://your-frontend.com"];
+const allowedOrigins = [
+    "http://localhost:3000",
+    "https://v-tube-ui.vercel.app/",
+];
 
 app.use(
     cors({
