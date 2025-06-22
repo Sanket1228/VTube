@@ -16,6 +16,10 @@ app.use(express.urlencoded({ extended: true, limit: "20kb" }));
 app.use(express.static("public"));
 app.use(cookieParser());
 
+app.get("/api/v1/health", (req, res) => {
+    return res.send("server is up");
+});
+
 // import routes
 import userRoutes from "./routes/user.routes.js";
 import videoRoutes from "./routes/video.routes.js";
