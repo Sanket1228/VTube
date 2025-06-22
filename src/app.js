@@ -6,7 +6,7 @@ const app = express();
 
 const allowedOrigins = [
     "http://localhost:3000",
-    "https://v-tube-ui.vercel.app/",
+    "https://vtube-backend-yc1s.onrender.com",
 ];
 
 app.use(
