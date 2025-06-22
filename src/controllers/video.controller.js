@@ -220,9 +220,77 @@ const getAllVideos = asyncHandler(async (req, res) => {
     );
 });
 
+const getUsersVideos = asyncHandler(async (req, res) => {
+    const { pg = 1, pgsz = 10 } = req.query;
+
+    const skip = (pg - 1) * pgsz;
+
+    const videos = await Video.aggregate([
+        {
+            $match: {
+                owner: req?.user?._id,
+            },
+        },
+        {
+            $skip: skip,
+        },
+        {
+            $limit: pgsz,
+        },
+        {
+            $lookup: {
+                from: "users",
+                localField: "owner",
+                foreignField: "_id",
+                as: "ownerDetails",
+            },
+        },
+        {
+            $unwind: {
+                path: "$ownerDetails",
+                preserveNullAndEmptyArrays: true,
+            },
+        },
+        {
+            $project: {
+                videoFile: 1,
+                thumbnail: 1,
+                title: 1,
+                description: 1,
+                duration: 1,
+                views: 1,
+                isPublished: 1,
+                createdAt: 1,
+                updatedAt: 1,
+                "ownerDetails.fullName": 1,
+            },
+        },
+    ]);
+
+    if (!videos) {
+        throw new ApiResponse(404, "videos not found");
+    }
+
+    const count = await Video.countDocuments();
+
+    return res.status(200).json(
+        new ApiResponse(
+            200,
+            {
+                currentPage: pg,
+                pageSize: pgsz,
+                total: Math.ceil(count / pgsz),
+                videos,
+            },
+            "videos fetched successfully"
+        )
+    );
+});
+
 export {
     deleteVideo,
     getAllVideos,
+    getUsersVideos,
     getVideoById,
     publishVideo,
     togglePublishStatus,
